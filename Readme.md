@@ -2,6 +2,186 @@
 
 CartMateHex é uma aplicação de gerenciamento de listas de compras com suporte a autenticação de usuários, desenvolvida usando a arquitetura hexagonal (ports and adapters) e utilizando **Spring Boot** no backend.
 
+## Estrutura
+
+```
+├───src
+│   ├───main
+│   │   ├───java
+│   │   │   └───br
+│   │   │       └───dev
+│   │   │           └───drufontael
+│   │   │               └───CartMateHex
+│   │   │                   ├───adapter
+│   │   │                   │   ├───persistence
+│   │   │                   │   │   └───repository
+│   │   │                   │   │       └───entity
+│   │   │                   │   └───web
+│   │   │                   │       └───dto
+│   │   │                   ├───domain
+│   │   │                   │   ├───exception
+│   │   │                   │   ├───model
+│   │   │                   │   ├───port
+│   │   │                   │   │   ├───in
+│   │   │                   │   │   └───out
+│   │   │                   │   └───service
+│   │   │                   └───infrastructure
+│   │   │                       ├───configuration
+│   │   │                       │   ├───beans
+│   │   │                       │   ├───documentation
+│   │   │                       │   │   └───api
+│   │   │                       │   └───security
+│   │   │                       └───dev
+
+```
+
+## Diagrama de classes
+
+```mermaid
+classDiagram
+   direction LR
+
+%% Domain Model
+   class ShoppingList {
+      +Long id
+      +String owner
+      +LocalDate date
+      +List~Product~ products
+      +User user
+   }
+
+   class Product {
+      +Long id
+      +String name
+      +int quantity
+      +double price
+      +boolean available
+   }
+
+   class User {
+      +Long id
+      +String username
+      +String password
+      +String email
+      +Role role
+   }
+
+   class Role {
+      <<enumeration>>
+      USER
+      ADMIN
+   }
+
+
+
+%% Ports
+   class ManageShoppingListPort {
+      <<interface>>
+      +ShoppingList createList(String name, Long userId)
+      +ShoppingList updateList(Long id, ShoppingList list)
+      +void deleteList(Long id)
+      +ShoppingList getListById(Long id, Long userId)
+      +void addProduct(Long listId, Product product)
+      +void removeProduct(Long listId, UUID productId)
+      +void updateProduct(Long listId, UUID productId, Product product)
+      +void updateProduct(Long listId, UUID productId)
+      +List<ShoppingList> getAllLists(Long userId)
+   }
+
+
+   class ManagerUserPort {
+      <<interface>>
+      +void createUser(String username, String password, String email)
+      +void createAdmin(String username, String password, String email)
+      +User findByUsername(String username)
+   }
+
+   class ShoppingListPersistencePort {
+      <<interface>>
+      +ShoppingList save(ShoppingList list)
+      +ShoppingList findById(Long id)
+      +void deleteById(Long id)
+      +ShoppingList update(Long id, ShoppingList list)
+      +List~ShoppingList~ getAll(Long userId)
+   }
+
+   class UserPersistencePort {
+      <<interface>>
+      +void save(User user)
+      +User findByUsername(String username)
+   }
+
+%% Adapters - Persistence
+
+    class ShoppingListPersistenceAdapter{
+        
+    }
+    
+   class ShoppingListRepository {
+      <<interface>>
+   }
+   
+   class UserPersistenceAdapter {
+       
+   }
+
+   class UserRepository {
+      <<interface>>
+   }
+
+%% Adapters - Web
+   class ShoppingListController {
+        +ResponseEntity~ShoppingListInfoResponse~ createList(ShoppingListCreateRequest request, CustomUserDetails user)
+        +ResponseEntity~List~ShoppingListInfoResponse~~ getAllLists(CustomUserDetails user)
+        +ResponseEntity~ShoppingListResponse~ getList(Long id,CustomUserDetails user)
+        +ResponseEntity~ShoppingListResponse~ updateList(Long id, ShoppingListRequest request, CustomUserDetails user)
+        +ResponseEntity~Void~ deleteList(Long id, CustomUserDetails user)
+        +ResponseEntity~Void~ addProduct(Long id,ProductRequest request,CustomUserDetails user)
+        +ResponseEntity~Void~ updateProduct( Long id,UUID productId,ProductRequest request, CustomUserDetails user)
+        +ResponseEntity~Void~ updateProduct(Long id,UUID productId,CustomUserDetails user)
+        +ResponseEntity~Void~ removeProduct(Long id,UUID productId,CustomUserDetails user)
+   }
+
+   class UserAcessController {
+      +ResponseEntity~List~ShoppingListInfoResponse~~ login(String username, String password)
+      +ResponseEntity~String~ register(User user)
+   }
+
+%% Services
+   class ShoppingListService {
+
+   }
+
+   class UserService {
+
+   }   
+
+%% Relationships
+   ShoppingList o-- User
+   ShoppingList *-- Product
+   
+   ShoppingListService ..|> ManageShoppingListPort
+   ShoppingListService o-- ShoppingListPersistencePort
+   ShoppingListService o-- UserPersistencePort
+   
+   ShoppingListPersistenceAdapter..|>ShoppingListPersistencePort
+   ShoppingListPersistenceAdapter o-- ShoppingListRepository
+   
+   
+
+   UserService ..|> ManagerUserPort
+   UserService o-- UserPersistencePort   
+   
+   UserPersistenceAdapter ..|> UserPersistencePort
+   UserPersistenceAdapter o-- UserRepository
+   
+
+   ShoppingListController o-- ManageShoppingListPort
+   UserAcessController o-- ManagerUserPort
+
+
+```
+
 ## Funcionalidades
 
 - Cadastro de usuários com roles (USER, ADMIN).
